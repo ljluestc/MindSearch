@@ -5,6 +5,7 @@ gradio==5.7.1
 janus
 lagent==0.5.0rc2
 matplotlib
+packaging
 pydantic==2.6.4
 python-dotenv
 pyvis

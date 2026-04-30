@@ -2,6 +2,9 @@ import os
 from copy import deepcopy
 from datetime import datetime
 
+import lagent
+from packaging import version as pkg_version
+
 from lagent.actions import AsyncWebBrowser, WebBrowser
 from lagent.agents.stream import get_plugin_prompt
 from lagent.prompts import InterpreterParser, PluginParser
@@ -23,6 +26,27 @@ from .mindsearch_prompt import (
 )
 
 LLM = {}
+MIN_TENCENTSEARCH_LAGENT_VERSION = "0.5.0rc2"
+
+
+def _validate_tencentsearch_lagent_version(
+        search_engine: str,
+        lagent_version: str = None):
+    """Validate lagent compatibility only when TencentSearch is selected."""
+    if search_engine != "TencentSearch":
+        return
+    resolved_version = lagent_version or getattr(lagent, "__version__", "0.0.0")
+    try:
+        if pkg_version.parse(resolved_version) < pkg_version.parse(
+                MIN_TENCENTSEARCH_LAGENT_VERSION):
+            raise RuntimeError(
+                f"TencentSearch requires lagent >= {MIN_TENCENTSEARCH_LAGENT_VERSION}, "
+                f"but installed version is {resolved_version}. "
+                f"Please upgrade: pip install lagent=={MIN_TENCENTSEARCH_LAGENT_VERSION}"
+            )
+    except pkg_version.InvalidVersion:
+        # If version parsing fails, let downstream behavior continue unchanged.
+        pass
 
 
 def init_agent(lang="cn",
@@ -44,6 +68,8 @@ def init_agent(lang="cn",
         LLM.setdefault(model_format, {}).setdefault(mode, llm)
 
     date = datetime.now().strftime("The current date is %Y-%m-%d.")
+
+    _validate_tencentsearch_lagent_version(search_engine)
     plugins = [(dict(
         type=AsyncWebBrowser if use_async else WebBrowser,
         searcher_type=search_engine,
